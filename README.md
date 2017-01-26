@@ -1,5 +1,7 @@
 # console
 
+[![Build Status](https://travis-ci.org/crosbymichael/console.svg?branch=master)](https://travis-ci.org/crosbymichael/console)
+
 Golang package for dealing with consoles.  Light on deps and a simple API.
 
 ## Modifying the current process
