@@ -9,6 +9,29 @@ import (
 	"unsafe"
 )
 
+// NewPty creates a new pty pair
+// The master is returned as the first console and a string
+// with the path to the pty slave is returned as the second
+func NewPty() (Console, string, error) {
+	f, err := os.OpenFile("/dev/ptmx", syscall.O_RDWR|syscall.O_NOCTTY|syscall.O_CLOEXEC, 0)
+	if err != nil {
+		return nil, "", err
+	}
+	if err := saneTerminal(f); err != nil {
+		return nil, "", err
+	}
+	slave, err := ptsname(f)
+	if err != nil {
+		return nil, "", err
+	}
+	if err := unlockpt(f); err != nil {
+		return nil, "", err
+	}
+	return &master{
+		f: f,
+	}, slave, nil
+}
+
 type master struct {
 	f       *os.File
 	termios *syscall.Termios
@@ -27,15 +50,11 @@ func (m *master) Close() error {
 }
 
 func (m *master) Resize(ws WinSize) error {
-	if _, _, err := syscall.Syscall(
-		syscall.SYS_IOCTL,
+	return ioctl(
 		m.f.Fd(),
 		uintptr(syscall.TIOCSWINSZ),
 		uintptr(unsafe.Pointer(&ws)),
-	); err != 0 {
-		return err
-	}
-	return nil
+	)
 }
 
 func (m *master) ResizeFrom(c Console) error {
@@ -55,34 +74,31 @@ func (m *master) Reset() error {
 
 func (m *master) SetRaw() error {
 	m.termios = &syscall.Termios{}
-	if err := tcget(m.f.Fd(), m.termios); err != 0 {
+	if err := tcget(m.f.Fd(), m.termios); err != nil {
 		return err
 	}
 	rawState := *m.termios
 	C.cfmakeraw((*C.struct_termios)(unsafe.Pointer(&rawState)))
 	rawState.Oflag = rawState.Oflag | C.OPOST
-	if err := tcset(m.f.Fd(), &rawState); err != 0 {
-		return err
-	}
-	return nil
+	return tcset(m.f.Fd(), &rawState)
 }
 
 func (m *master) Size() (WinSize, error) {
 	var ws WinSize
-	if _, _, err := syscall.Syscall(
-		syscall.SYS_IOCTL,
+	if err := ioctl(
 		m.f.Fd(),
 		uintptr(syscall.TIOCGWINSZ),
 		uintptr(unsafe.Pointer(&ws)),
-	); err != 0 {
+	); err != nil {
 		return ws, err
 	}
 	return ws, nil
 }
 
+// checkConsole checks if the provided file is a console
 func checkConsole(f *os.File) error {
 	var termios syscall.Termios
-	if tcget(f.Fd(), &termios) != 0 {
+	if tcget(f.Fd(), &termios) != nil {
 		return ErrNotAConsole
 	}
 	return nil
