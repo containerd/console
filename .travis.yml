@@ -6,5 +6,10 @@ go:
 
 go_import_path: github.com/containerd/console
 
+install:
+  - go get -d
+  - GOOS=windows go get -d
+
 script:
   - go test -race
+  - GOOS=windows go test
