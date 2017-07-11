@@ -136,3 +136,12 @@ func newMaster(f *os.File) Console {
 		f: f,
 	}
 }
+
+// SaneTerminal sets the necessary tty_ioctl(4)s to ensure that a pty pair
+// created by us acts normally. In particular, a not-very-well-known default of
+// Linux unix98 ptys is that they have +onlcr by default. While this isn't a
+// problem for terminal emulators, because we relay data from the terminal we
+// also relay that funky line discipline.
+func SaneTerminal(f *os.File) error {
+	return saneTerminal(f)
+}
