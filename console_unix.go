@@ -118,6 +118,10 @@ func (m *master) Fd() uintptr {
 	return m.f.Fd()
 }
 
+func (m *master) Name() string {
+	return m.f.Name()
+}
+
 // checkConsole checks if the provided file is a console
 func checkConsole(f *os.File) error {
 	var termios unix.Termios
