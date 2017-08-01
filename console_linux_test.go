@@ -1,5 +1,3 @@
-// +build linux solaris
-
 package console
 
 import (
@@ -12,33 +10,7 @@ import (
 	"testing"
 )
 
-func TestWinSize(t *testing.T) {
-	c, _, err := NewPty()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer c.Close()
-	if err := c.Resize(WinSize{
-		Width:  11,
-		Height: 10,
-	}); err != nil {
-		t.Error(err)
-		return
-	}
-	size, err := c.Size()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if size.Width != 11 {
-		t.Errorf("width should be 11 but received %d", size.Width)
-	}
-	if size.Height != 10 {
-		t.Errorf("height should be 10 but received %d", size.Height)
-	}
-}
-
-func TestConsolePty(t *testing.T) {
+func TestEpollConsole(t *testing.T) {
 	console, slavePath, err := NewPty()
 	if err != nil {
 		t.Fatal(err)
@@ -58,13 +30,23 @@ func TestConsolePty(t *testing.T) {
 	cmd.Stdout = slave
 	cmd.Stderr = slave
 
+	epoller, err := NewEpoller()
+	if err != nil {
+		t.Fatal(err)
+	}
+	epollConsole, err := epoller.Add(console)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go epoller.Wait()
+
 	var (
 		b  bytes.Buffer
 		wg sync.WaitGroup
 	)
 	wg.Add(1)
 	go func() {
-		io.Copy(&b, console)
+		io.Copy(&b, epollConsole)
 		wg.Done()
 	}()
 
@@ -72,7 +54,13 @@ func TestConsolePty(t *testing.T) {
 		t.Fatal(err)
 	}
 	slave.Close()
+	if err := epollConsole.Shutdown(epoller.CloseConsole); err != nil {
+		t.Fatal(err)
+	}
 	wg.Wait()
+	if err := epollConsole.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	expectedOutput := ""
 	for i := 0; i < iteration; i++ {
