@@ -16,9 +16,6 @@ func NewPty() (Console, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	if err := saneTerminal(f); err != nil {
-		return nil, "", err
-	}
 	slave, err := ptsname(f)
 	if err != nil {
 		return nil, "", err
