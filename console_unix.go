@@ -23,9 +23,11 @@ func NewPty() (Console, string, error) {
 	if err := unlockpt(f); err != nil {
 		return nil, "", err
 	}
-	return &master{
-		f: f,
-	}, slave, nil
+	m, err := newMaster(f)
+	if err != nil {
+		return nil, "", err
+	}
+	return m, slave, nil
 }
 
 type master struct {
@@ -68,9 +70,6 @@ func (m *master) getCurrent() (unix.Termios, error) {
 	var termios unix.Termios
 	if err := tcget(m.f.Fd(), &termios); err != nil {
 		return unix.Termios{}, err
-	}
-	if m.original == nil {
-		m.original = &termios
 	}
 	return termios, nil
 }
@@ -115,17 +114,23 @@ func checkConsole(f *os.File) error {
 	return nil
 }
 
-func newMaster(f *os.File) Console {
-	return &master{
+func newMaster(f *os.File) (Console, error) {
+	m := &master{
 		f: f,
 	}
+	t, err := m.getCurrent()
+	if err != nil {
+		return nil, err
+	}
+	m.original = &t
+	return m, nil
 }
 
-// SaneTerminal sets the necessary tty_ioctl(4)s to ensure that a pty pair
+// ClearONCLR sets the necessary tty_ioctl(4)s to ensure that a pty pair
 // created by us acts normally. In particular, a not-very-well-known default of
 // Linux unix98 ptys is that they have +onlcr by default. While this isn't a
 // problem for terminal emulators, because we relay data from the terminal we
 // also relay that funky line discipline.
-func SaneTerminal(f *os.File) error {
-	return saneTerminal(f)
+func ClearONLCR(f *os.File) error {
+	return clearONCLR(f)
 }

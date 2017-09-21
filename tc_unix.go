@@ -49,7 +49,7 @@ func tcswinsz(fd uintptr, ws WinSize) error {
 	return unix.IoctlSetWinsize(int(fd), unix.TIOCSWINSZ, &uws)
 }
 
-func saneTerminal(f *os.File) error {
+func clearONCLR(f *os.File) error {
 	var termios unix.Termios
 	if err := tcget(f.Fd(), &termios); err != nil {
 		return err
