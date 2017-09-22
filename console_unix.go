@@ -126,11 +126,17 @@ func newMaster(f *os.File) (Console, error) {
 	return m, nil
 }
 
-// ClearONCLR sets the necessary tty_ioctl(4)s to ensure that a pty pair
+// ClearONLCR sets the necessary tty_ioctl(4)s to ensure that a pty pair
 // created by us acts normally. In particular, a not-very-well-known default of
 // Linux unix98 ptys is that they have +onlcr by default. While this isn't a
 // problem for terminal emulators, because we relay data from the terminal we
 // also relay that funky line discipline.
-func ClearONLCR(f *os.File) error {
-	return clearONCLR(f)
+func ClearONLCR(fd uintptr) error {
+	return setONLCR(fd, false)
+}
+
+// SetONLCR sets the necessary tty_ioctl(4)s to ensure that a pty pair
+// created by us acts as intended for a terminal emulator.
+func SetONLCR(fd uintptr) error {
+	return setONLCR(fd, true)
 }

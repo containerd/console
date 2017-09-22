@@ -192,7 +192,7 @@ func checkConsole(f *os.File) error {
 
 func newMaster(f *os.File) (Console, error) {
 	if f != os.Stdin && f != os.Stdout && f != os.Stderr {
-		return nil, errors.Errorf("creating a console from a file is not supported on windows")
+		return nil, errors.New("creating a console from a file is not supported on windows")
 	}
 	m := &master{}
 	m.initStdios()
