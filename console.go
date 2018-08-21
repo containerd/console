@@ -20,6 +20,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"runtime"
 )
 
 var ErrNotAConsole = errors.New("provided file is not a console")
@@ -60,7 +61,11 @@ type WinSize struct {
 
 // Current returns the current processes console
 func Current() Console {
-	c, err := ConsoleFromFile(os.Stdin)
+	f := os.Stdin
+	if runtime.GOOS == "windows" {
+		f = os.Stdout
+	}
+	c, err := ConsoleFromFile(f)
 	if err != nil {
 		// stdin should always be a console for the design
 		// of this function
