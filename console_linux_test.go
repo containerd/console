@@ -85,4 +85,12 @@ func TestEpollConsole(t *testing.T) {
 	if out := b.String(); out != expectedOutput {
 		t.Errorf("unexpected output %q", out)
 	}
+
+	// make sure multiple Close calls return os.ErrClosed after the first
+	if err := epoller.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := epoller.Close(); err != os.ErrClosed {
+		t.Fatalf("unexpected error returned from second call to epoller.Close(): %v", err)
+	}
 }
