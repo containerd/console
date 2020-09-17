@@ -44,12 +44,7 @@ jobs:
       run: |
         go get -u github.com/vbatts/git-validation
         go get -u github.com/kunalkushwaha/ltag
-        go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
-        (
-          cd "${GOPATH}/src/github.com/golangci/golangci-lint/cmd/golangci-lint"
-          git checkout v1.23.8
-          go build -v && go install
-        )
+        GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.23.8
 
     - name: Check DCO/whitespace/commit message
       env:
