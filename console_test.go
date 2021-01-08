@@ -1,4 +1,4 @@
-// +build linux solaris freebsd
+// +build linux solaris zos freebsd
 
 /*
    Copyright The containerd Authors.
@@ -20,7 +20,6 @@ package console
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -69,11 +68,6 @@ func TestConsolePty(t *testing.T) {
 
 	iteration := 10
 
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("for x in `seq 1 %d`; do echo -n test; done", iteration))
-	cmd.Stdin = slave
-	cmd.Stdout = slave
-	cmd.Stderr = slave
-
 	var (
 		b  bytes.Buffer
 		wg sync.WaitGroup
@@ -84,8 +78,15 @@ func TestConsolePty(t *testing.T) {
 		wg.Done()
 	}()
 
-	if err := cmd.Run(); err != nil {
-		t.Fatal(err)
+	for i := 0; i < iteration; i++ {
+		cmd := exec.Command("sh", "-c", "printf test")
+		cmd.Stdin = slave
+		cmd.Stdout = slave
+		cmd.Stderr = slave
+
+		if err := cmd.Run(); err != nil {
+			t.Fatal(err)
+		}
 	}
 	slave.Close()
 	wg.Wait()
