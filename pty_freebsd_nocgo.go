@@ -18,6 +18,10 @@
 
 package console
 
+import (
+	"os"
+)
+
 //
 // Implementing the functions below requires cgo support.  Non-cgo stubs
 // versions are defined below to enable cross-compilation of source code
