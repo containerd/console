@@ -75,3 +75,22 @@ jobs:
         GOOS=openbsd go build
         GOOS=windows go build
         GOOS=solaris go build
+
+  s390:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: set vars
+      run: echo "/usr/local/go/bin" >> $GITHUB_PATH
+    - uses: uraimo/run-on-arch-action@v2.0.9
+      with:
+        arch: s390x
+        distro: ubuntu20.04
+        githubToken: ${{ github.token }}
+        install: |
+          wget -O - https://golang.org/dl/go1.16.3.linux-s390x.tar.gz | tar Cxz /usr/local
+          /usr/local/go/bin/go version
+          /usr/local/go/bin/go mod download
+        run: |
+          go version
+          go test
