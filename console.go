@@ -78,6 +78,9 @@ func Current() (c Console) {
 }
 
 // ConsoleFromFile returns a console using the provided file
+//
+// On windows we can't build a Console from ordinary File so the call is equavalent to Current.
+//
 // nolint:golint
 func ConsoleFromFile(f File) (Console, error) {
 	if err := checkConsole(f); err != nil {
