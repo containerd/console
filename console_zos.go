@@ -1,3 +1,4 @@
+//go:build zos
 // +build zos
 
 /*
@@ -32,7 +33,7 @@ func NewPty() (Console, string, error) {
 	var f File
 	var err error
 	var slave string
-	for i := 0;; i++ {
+	for i := 0; ; i++ {
 		ptyp := fmt.Sprintf("/dev/ptyp%04d", i)
 		f, err = os.OpenFile(ptyp, os.O_RDWR, 0600)
 		if err == nil {
