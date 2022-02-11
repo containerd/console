@@ -1,5 +1,5 @@
-//go:build darwin || freebsd || linux || netbsd || openbsd
-// +build darwin freebsd linux netbsd openbsd
+//go:build darwin || freebsd || linux || netbsd || openbsd || zos
+// +build darwin freebsd linux netbsd openbsd zos
 
 /*
    Copyright The containerd Authors.
@@ -27,22 +27,7 @@ import (
 // The master is returned as the first console and a string
 // with the path to the pty slave is returned as the second
 func NewPty() (Console, string, error) {
-	f, err := openpt()
-	if err != nil {
-		return nil, "", err
-	}
-	slave, err := ptsname(f)
-	if err != nil {
-		return nil, "", err
-	}
-	if err := unlockpt(f); err != nil {
-		return nil, "", err
-	}
-	m, err := newMaster(f)
-	if err != nil {
-		return nil, "", err
-	}
-	return m, slave, nil
+	return newPty()
 }
 
 type master struct {

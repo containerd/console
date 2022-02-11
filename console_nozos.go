@@ -1,5 +1,5 @@
-//go:build zos
-// +build zos
+//go:build darwin || freebsd || linux || netbsd || openbsd
+// +build darwin freebsd linux netbsd openbsd
 
 /*
    Copyright The containerd Authors.
@@ -19,26 +19,17 @@
 
 package console
 
-import (
-	"fmt"
-	"os"
-)
-
 func newPty() (Console, string, error) {
-	var f File
-	var err error
-	var slave string
-	for i := 0; ; i++ {
-		ptyp := fmt.Sprintf("/dev/ptyp%04d", i)
-		f, err = os.OpenFile(ptyp, os.O_RDWR, 0600)
-		if err == nil {
-			slave = fmt.Sprintf("/dev/ttyp%04d", i)
-			break
-		}
-		if os.IsNotExist(err) {
-			return nil, "", err
-		}
-		// else probably Resource Busy
+	f, err := openpt()
+	if err != nil {
+		return nil, "", err
+	}
+	slave, err := ptsname(f)
+	if err != nil {
+		return nil, "", err
+	}
+	if err := unlockpt(f); err != nil {
+		return nil, "", err
 	}
 	m, err := newMaster(f)
 	if err != nil {
