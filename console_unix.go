@@ -27,7 +27,22 @@ import (
 // The master is returned as the first console and a string
 // with the path to the pty slave is returned as the second
 func NewPty() (Console, string, error) {
-	return newPty()
+	f, err := openpt()
+	if err != nil {
+		return nil, "", err
+	}
+	slave, err := ptsname(f)
+	if err != nil {
+		return nil, "", err
+	}
+	if err := unlockpt(f); err != nil {
+		return nil, "", err
+	}
+	m, err := newMaster(f)
+	if err != nil {
+		return nil, "", err
+	}
+	return m, slave, nil
 }
 
 type master struct {

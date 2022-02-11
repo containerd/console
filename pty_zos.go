@@ -24,25 +24,20 @@ import (
 	"os"
 )
 
-func newPty() (Console, string, error) {
-	var f File
+// openpt allocates a new pseudo-terminal by opening the first available /dev/ptypXX device
+func openpt() (*os.File, error) {
+	var f *os.File
 	var err error
-	var slave string
 	for i := 0; ; i++ {
 		ptyp := fmt.Sprintf("/dev/ptyp%04d", i)
 		f, err = os.OpenFile(ptyp, os.O_RDWR, 0600)
 		if err == nil {
-			slave = fmt.Sprintf("/dev/ttyp%04d", i)
 			break
 		}
 		if os.IsNotExist(err) {
-			return nil, "", err
+			return nil, err
 		}
 		// else probably Resource Busy
 	}
-	m, err := newMaster(f)
-	if err != nil {
-		return nil, "", err
-	}
-	return m, slave, nil
+	return f, nil
 }
