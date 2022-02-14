@@ -1,3 +1,4 @@
+//go:build linux || solaris || zos || freebsd
 // +build linux solaris zos freebsd
 
 /*

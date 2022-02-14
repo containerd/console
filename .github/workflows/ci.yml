@@ -17,7 +17,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.16.x
+        go-version: 1.17.x
       id: go
 
     - name: Setup Go binary path
@@ -39,12 +39,10 @@ jobs:
         path: src/github.com/containerd/project
 
     - name: Install dependencies
-      env:
-        GO111MODULE: off
       run: |
-        go get -u github.com/vbatts/git-validation
-        go get -u github.com/kunalkushwaha/ltag
-        GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.23.8
+        go install github.com/vbatts/git-validation@latest
+        go install github.com/kunalkushwaha/ltag@latest
+        go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44.0
 
     - name: Check DCO/whitespace/commit message
       env:
