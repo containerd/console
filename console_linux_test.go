@@ -69,6 +69,14 @@ func TestEpollConsole(t *testing.T) {
 	if err := cmd.Run(); err != nil {
 		t.Fatal(err)
 	}
+
+	select {
+	case <-epollConsole.CloseC:
+		t.Fatal("epoll console didn't block while console is active")
+	default:
+		// The console close channel should block while the console is active, and we fallthrough here.
+	}
+
 	slave.Close()
 	if err := epollConsole.Shutdown(epoller.CloseConsole); err != nil {
 		t.Fatal(err)
@@ -76,6 +84,13 @@ func TestEpollConsole(t *testing.T) {
 	wg.Wait()
 	if err := epollConsole.Close(); err != nil {
 		t.Fatal(err)
+	}
+
+	select {
+	case <-epollConsole.CloseC:
+		// the channel should be closed since the console is shutdown. Anyone waiting should unblock.
+	default:
+		t.Fatal("epoll console should not block after console shutdown")
 	}
 
 	expectedOutput := ""

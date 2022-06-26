@@ -97,6 +97,7 @@ func (e *Epoller) Add(console Console) (*EpollConsole, error) {
 		sysfd:   sysfd,
 		readc:   sync.NewCond(&sync.Mutex{}),
 		writec:  sync.NewCond(&sync.Mutex{}),
+		CloseC:  make(chan struct{}),
 	}
 	e.mu.Lock()
 	e.fdMapping[sysfd] = ef
@@ -130,6 +131,13 @@ func (e *Epoller) Wait() error {
 			if ev.Events&(unix.EPOLLOUT|unix.EPOLLHUP|unix.EPOLLERR) != 0 {
 				if epfile := e.getConsole(int(ev.Fd)); epfile != nil {
 					epfile.signalWrite()
+				}
+			}
+
+			// the tty has been closed, notify anyone waiting on the console.
+			if ev.Events&(unix.EPOLLHUP|unix.EPOLLRDHUP) != 0 {
+				if epfile := e.getConsole(int(ev.Fd)); epfile != nil {
+					close(epfile.CloseC)
 				}
 			}
 		}
@@ -168,6 +176,9 @@ type EpollConsole struct {
 	writec *sync.Cond
 	sysfd  int
 	closed bool
+
+	// CloseC will be closed if the tty is closed.
+	CloseC chan struct{}
 }
 
 // Read reads up to len(p) bytes into p. It returns the number of bytes read
@@ -254,7 +265,7 @@ func (ec *EpollConsole) Write(p []byte) (n int, err error) {
 // console's fd from the epoll interface.
 // User should call Shutdown and wait for all I/O operation to be finished
 // before closing the console.
-func (ec *EpollConsole) Shutdown(close func(int) error) error {
+func (ec *EpollConsole) Shutdown(closef func(int) error) error {
 	ec.readc.L.Lock()
 	defer ec.readc.L.Unlock()
 	ec.writec.L.Lock()
@@ -263,7 +274,8 @@ func (ec *EpollConsole) Shutdown(close func(int) error) error {
 	ec.readc.Broadcast()
 	ec.writec.Broadcast()
 	ec.closed = true
-	return close(ec.sysfd)
+	close(ec.CloseC)
+	return closef(ec.sysfd)
 }
 
 // signalRead signals that the console is readable.
