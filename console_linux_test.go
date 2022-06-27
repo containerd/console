@@ -69,11 +69,27 @@ func TestEpollConsole(t *testing.T) {
 	if err := cmd.Run(); err != nil {
 		t.Fatal(err)
 	}
+
+	select {
+	case <-epollConsole.hangupc:
+		t.Fatal("hangup was expected to block while console is active")
+	default:
+		// expected: should fallthrough as the hangup channel exists
+	}
+
 	slave.Close()
 	if err := epollConsole.Shutdown(epoller.CloseConsole); err != nil {
 		t.Fatal(err)
 	}
 	wg.Wait()
+
+	select {
+	case <-epollConsole.hangupc:
+		// expected: the hangup channel is closed due to the Shutdown above
+	default:
+		t.Fatal("hangup should not block after shutdown called")
+	}
+
 	if err := epollConsole.Close(); err != nil {
 		t.Fatal(err)
 	}

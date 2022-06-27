@@ -97,6 +97,7 @@ func (e *Epoller) Add(console Console) (*EpollConsole, error) {
 		sysfd:   sysfd,
 		readc:   sync.NewCond(&sync.Mutex{}),
 		writec:  sync.NewCond(&sync.Mutex{}),
+		hangupc: make(chan struct{}),
 	}
 	e.mu.Lock()
 	e.fdMapping[sysfd] = ef
@@ -130,6 +131,13 @@ func (e *Epoller) Wait() error {
 			if ev.Events&(unix.EPOLLOUT|unix.EPOLLHUP|unix.EPOLLERR) != 0 {
 				if epfile := e.getConsole(int(ev.Fd)); epfile != nil {
 					epfile.signalWrite()
+				}
+			}
+
+			// the tty has been closed, notify anyone monitoring for this condition.
+			if ev.Events&(unix.EPOLLHUP|unix.EPOLLRDHUP) != 0 {
+				if epfile := e.getConsole(int(ev.Fd)); epfile != nil {
+					epfile.signalHangup()
 				}
 			}
 		}
@@ -168,6 +176,9 @@ type EpollConsole struct {
 	writec *sync.Cond
 	sysfd  int
 	closed bool
+
+	hangupc    chan struct{}
+	hanguponce sync.Once
 }
 
 // Read reads up to len(p) bytes into p. It returns the number of bytes read
@@ -248,6 +259,11 @@ func (ec *EpollConsole) Write(p []byte) (n int, err error) {
 	return n, err
 }
 
+// WaitHangup blocks until the remote end has hangup the console, or the console has been shutdown.
+func (ec *EpollConsole) WaitHangup() {
+	<-ec.hangupc
+}
+
 // Shutdown closes the file descriptor and signals call waiters for this fd.
 // It accepts a callback which will be called with the console's fd. The
 // callback typically will be used to do further cleanup such as unregister the
@@ -263,6 +279,9 @@ func (ec *EpollConsole) Shutdown(close func(int) error) error {
 	ec.readc.Broadcast()
 	ec.writec.Broadcast()
 	ec.closed = true
+
+	ec.signalHangup()
+
 	return close(ec.sysfd)
 }
 
@@ -278,4 +297,11 @@ func (ec *EpollConsole) signalWrite() {
 	ec.writec.L.Lock()
 	ec.writec.Signal()
 	ec.writec.L.Unlock()
+}
+
+// signalHangup signals that the remote end has hungup the console.
+func (ec *EpollConsole) signalHangup() {
+	ec.hanguponce.Do(func() {
+		close(ec.hangupc)
+	})
 }
