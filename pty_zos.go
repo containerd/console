@@ -1,3 +1,6 @@
+//go:build zos
+// +build zos
+
 /*
    Copyright The containerd Authors.
 
@@ -17,23 +20,24 @@
 package console
 
 import (
+	"fmt"
 	"os"
-	"strings"
-
-	"golang.org/x/sys/unix"
 )
 
-const (
-	cmdTcGet = unix.TCGETS
-	cmdTcSet = unix.TCSETS
-)
-
-// unlockpt is a no-op on zos.
-func unlockpt(_ *os.File) error {
-	return nil
-}
-
-// ptsname retrieves the name of the first available pts for the given master.
-func ptsname(f *os.File) (string, error) {
-	return "/dev/ttyp" + strings.TrimPrefix(f.Name(), "/dev/ptyp"), nil
+// openpt allocates a new pseudo-terminal by opening the first available /dev/ptypXX device
+func openpt() (*os.File, error) {
+	var f *os.File
+	var err error
+	for i := 0; ; i++ {
+		ptyp := fmt.Sprintf("/dev/ptyp%04d", i)
+		f, err = os.OpenFile(ptyp, os.O_RDWR, 0600)
+		if err == nil {
+			break
+		}
+		if os.IsNotExist(err) {
+			return nil, err
+		}
+		// else probably Resource Busy
+	}
+	return f, nil
 }
