@@ -94,6 +94,8 @@ func (m *master) SetRaw() error {
 }
 
 func (m *master) Reset() error {
+	var errs []error
+
 	for _, s := range []struct {
 		fd   windows.Handle
 		mode uint32
@@ -103,8 +105,14 @@ func (m *master) Reset() error {
 		{m.err, m.errMode},
 	} {
 		if err := windows.SetConsoleMode(s.fd, s.mode); err != nil {
-			return fmt.Errorf("unable to restore console mode: %w", err)
+			// we can't just abort on the first error, otherwise we might leave
+			// the console in an unexpected state.
+			errs = append(errs, fmt.Errorf("unable to restore console mode: %w", err))
 		}
+	}
+
+	if len(errs) > 0 {
+		return errs[0]
 	}
 
 	return nil
