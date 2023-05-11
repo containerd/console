@@ -51,3 +51,4 @@ jobs:
         go test -race
         GOOS=openbsd go build
         GOOS=windows go build
+        GOOS=solaris go build

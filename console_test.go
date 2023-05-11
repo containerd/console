@@ -1,5 +1,5 @@
-//go:build linux || zos || freebsd
-// +build linux zos freebsd
+//go:build linux || solaris || zos || freebsd
+// +build linux solaris zos freebsd
 
 /*
    Copyright The containerd Authors.
