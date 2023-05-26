@@ -22,7 +22,10 @@ import (
 	"os"
 )
 
-var ErrNotAConsole = errors.New("provided file is not a console")
+var (
+	ErrNotAConsole    = errors.New("provided file is not a console")
+	ErrNotImplemented = errors.New("not implemented")
+)
 
 type File interface {
 	io.ReadWriteCloser
