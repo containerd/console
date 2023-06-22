@@ -1,5 +1,5 @@
-//go:build darwin || linux || netbsd || openbsd
-// +build darwin linux netbsd openbsd
+//go:build darwin || linux || netbsd || openbsd || solaris
+// +build darwin linux netbsd openbsd solaris
 
 /*
    Copyright The containerd Authors.
