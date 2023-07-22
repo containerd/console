@@ -17,8 +17,11 @@
 package console
 
 import (
-	"fmt"
+	"bytes"
+	"errors"
 	"os"
+	"syscall"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
@@ -36,9 +39,15 @@ func unlockpt(f *os.File) error {
 
 // ptsname retrieves the name of the first available pts for the given master.
 func ptsname(f *os.File) (string, error) {
-	n, err := unix.IoctlGetInt(int(f.Fd()), unix.TIOCPTYGNAME)
-	if err != nil {
-		return "", err
+	n := make([]byte, 128)
+	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), syscall.TIOCPTYGNAME, uintptr(unsafe.Pointer(&n[0]))); errno != 0 {
+		return "", errno
 	}
-	return fmt.Sprintf("/dev/pts/%d", n), nil
+
+	end := bytes.IndexByte(n, 0)
+	if end < 0 {
+		return "", errors.New("TIOCPTYGNAME string not NUL-terminated")
+	}
+
+	return string(n[:end]), nil
 }
