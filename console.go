@@ -65,19 +65,17 @@ type WinSize struct {
 }
 
 // Current returns the current process' console
-func Current() (c Console) {
-	var err error
+func Current() (c Console, err error) {
 	// Usually all three streams (stdin, stdout, and stderr)
 	// are open to the same console, but some might be redirected,
 	// so try all three.
 	for _, s := range []*os.File{os.Stderr, os.Stdout, os.Stdin} {
 		if c, err = ConsoleFromFile(s); err == nil {
-			return c
+			return c, nil
 		}
 	}
-	// One of the std streams should always be a console
-	// for the design of this function.
-	panic(err)
+
+	return nil, err
 }
 
 // ConsoleFromFile returns a console using the provided file

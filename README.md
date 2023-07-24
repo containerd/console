@@ -9,7 +9,9 @@ Golang package for dealing with consoles.  Light on deps and a simple API.
 ## Modifying the current process
 
 ```go
-current := console.Current()
+current, err := console.Current()
+if err != nil {
+}
 defer current.Reset()
 
 if err := current.SetRaw(); err != nil {
