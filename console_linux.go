@@ -260,6 +260,10 @@ func (ec *EpollConsole) Shutdown(close func(int) error) error {
 	ec.writec.L.Lock()
 	defer ec.writec.L.Unlock()
 
+	if ec.closed {
+		return nil
+	}
+
 	ec.readc.Broadcast()
 	ec.writec.Broadcast()
 	ec.closed = true
