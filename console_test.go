@@ -54,8 +54,8 @@ func TestWinSize(t *testing.T) {
 	}
 }
 
-func TestConsolePty(t *testing.T) {
-	console, slavePath, err := NewPty()
+func testConsolePty(t *testing.T, newPty func() (Console, string, error)) {
+	console, slavePath, err := newPty()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,4 +99,19 @@ func TestConsolePty(t *testing.T) {
 	if out := b.String(); out != expectedOutput {
 		t.Errorf("unexpected output %q", out)
 	}
+}
+
+func TestConsolePty_NewPty(t *testing.T) {
+	testConsolePty(t, NewPty)
+}
+
+func TestConsolePty_NewPtyFromFile(t *testing.T) {
+	testConsolePty(t, func() (Console, string, error) {
+		// Equivalent to NewPty().
+		f, err := openpt()
+		if err != nil {
+			return nil, "", err
+		}
+		return NewPtyFromFile(f)
+	})
 }
