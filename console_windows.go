@@ -62,6 +62,8 @@ func (m *master) initStdios() {
 }
 
 type master struct {
+	f File
+
 	in     windows.Handle
 	inMode uint32
 
@@ -153,22 +155,19 @@ func (m *master) Close() error {
 }
 
 func (m *master) Read(b []byte) (int, error) {
-	return os.Stdin.Read(b)
+	return m.f.Read(b)
 }
 
 func (m *master) Write(b []byte) (int, error) {
-	return os.Stdout.Write(b)
+	return m.f.Write(b)
 }
 
 func (m *master) Fd() uintptr {
-	return uintptr(m.in)
+	return m.f.Fd()
 }
 
-// on windows, console can only be made from os.Std{in,out,err}, hence there
-// isnt a single name here we can use. Return a dummy "console" value in this
-// case should be sufficient.
 func (m *master) Name() string {
-	return "console"
+	return m.f.Name()
 }
 
 // makeInputRaw puts the terminal (Windows Console) connected to the given
@@ -213,7 +212,7 @@ func newMaster(f File) (Console, error) {
 	if f != os.Stdin && f != os.Stdout && f != os.Stderr {
 		return nil, errors.New("creating a console from a file is not supported on windows")
 	}
-	m := &master{}
+	m := &master{f: f}
 	m.initStdios()
 	return m, nil
 }
