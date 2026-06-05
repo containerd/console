@@ -166,6 +166,10 @@ func (m *master) Fd() uintptr {
 	return m.f.Fd()
 }
 
+// Name returns the name of the underlying file the console was created from
+// (for example "/dev/stdout"). It intentionally no longer returns a fixed
+// "console" string so the reported name matches the originating file,
+// consistent with the Unix implementation.
 func (m *master) Name() string {
 	return m.f.Name()
 }
@@ -208,6 +212,14 @@ func checkConsole(f File) error {
 	return nil
 }
 
+// newMaster creates a Console from one of the process's standard streams
+// (os.Stdin, os.Stdout, or os.Stderr); any other file is rejected.
+//
+// Read, Write, Fd, and Name are delegated to f. The console-mode operations
+// (SetRaw, Reset, Size, and DisableEcho) act on the process's standard
+// handles rather than f alone: on Windows these streams share a single
+// underlying console object, so mode and size queries apply to that console
+// as a whole.
 func newMaster(f File) (Console, error) {
 	if f != os.Stdin && f != os.Stdout && f != os.Stderr {
 		return nil, errors.New("creating a console from a file is not supported on windows")
