@@ -175,3 +175,40 @@ func TestConsoleFromFile_Delegation(t *testing.T) {
 		t.Fatalf("subprocess failed: %v\n%s", err, stderr.String())
 	}
 }
+
+// fileWrapper decorates an *os.File without being one of the os.Std*
+// package variables — the shape callers hand over when their CLI streams
+// wrap a standard stream (see docker/compose#14086).
+type fileWrapper struct {
+	*os.File
+}
+
+// TestNewMaster_StandardStreamIdentity verifies that newMaster identifies a
+// standard stream by its console handle rather than by Go value identity: a
+// File decorating a standard stream reports the same handle through Fd() and
+// designates the same console object, so it must be accepted like the os.Std*
+// value it wraps. Files carrying any other handle stay rejected.
+//
+// initStdios tolerates redirected streams, so this runs in headless CI.
+func TestNewMaster_StandardStreamIdentity(t *testing.T) {
+	for _, f := range []*os.File{os.Stdin, os.Stdout, os.Stderr} {
+		if _, err := newMaster(f); err != nil {
+			t.Errorf("newMaster(%s): %v", f.Name(), err)
+		}
+		if _, err := newMaster(fileWrapper{f}); err != nil {
+			t.Errorf("newMaster(wrapper{%s}): %v", f.Name(), err)
+		}
+	}
+
+	f, err := os.CreateTemp(t.TempDir(), "console")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if _, err := newMaster(f); err == nil {
+		t.Error("newMaster accepted a regular file")
+	}
+	if _, err := newMaster(fileWrapper{f}); err == nil {
+		t.Error("newMaster accepted a wrapped regular file")
+	}
+}

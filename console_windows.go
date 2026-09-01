@@ -212,8 +212,11 @@ func checkConsole(f File) error {
 	return nil
 }
 
-// newMaster creates a Console from one of the process's standard streams
-// (os.Stdin, os.Stdout, or os.Stderr); any other file is rejected.
+// newMaster creates a Console from one of the process's standard streams,
+// identified by its underlying console handle: os.Stdin, os.Stdout,
+// os.Stderr, or any File reporting one of their handles through Fd() — a
+// wrapper decorating a standard stream is accepted, since the handle is what
+// designates the console object. Files with any other handle are rejected.
 //
 // Read, Write, Fd, and Name are delegated to f. The console-mode operations
 // (SetRaw, Reset, Size, and DisableEcho) act on the process's standard
@@ -221,7 +224,7 @@ func checkConsole(f File) error {
 // underlying console object, so mode and size queries apply to that console
 // as a whole.
 func newMaster(f File) (Console, error) {
-	if f != os.Stdin && f != os.Stdout && f != os.Stderr {
+	if fd := f.Fd(); fd != os.Stdin.Fd() && fd != os.Stdout.Fd() && fd != os.Stderr.Fd() {
 		return nil, errors.New("creating a console from a file is not supported on windows")
 	}
 	m := &master{f: f}
