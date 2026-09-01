@@ -1,5 +1,5 @@
-//go:build !aix && !darwin && !freebsd && !linux && !netbsd && !openbsd && !windows && !zos
-// +build !aix,!darwin,!freebsd,!linux,!netbsd,!openbsd,!windows,!zos
+//go:build aix
+// +build aix
 
 /*
    Copyright The containerd Authors.
@@ -19,18 +19,13 @@
 
 package console
 
-// NewPty creates a new pty pair
-// The master is returned as the first console and a string
-// with the path to the pty slave is returned as the second
-func NewPty() (Console, string, error) {
-	return nil, "", ErrNotImplemented
-}
+import (
+	"os"
 
-// checkConsole checks if the provided file is a console
-func checkConsole(f File) error {
-	return ErrNotAConsole
-}
+	"golang.org/x/sys/unix"
+)
 
-func newMaster(f File) (Console, error) {
-	return nil, ErrNotImplemented
+// openpt allocates a new pseudo-terminal by opening the /dev/ptmx device
+func openpt() (*os.File, error) {
+	return os.OpenFile("/dev/ptc", unix.O_RDWR|unix.O_NOCTTY|unix.O_CLOEXEC, 0)
 }
